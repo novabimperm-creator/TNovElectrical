@@ -1,0 +1,244 @@
+﻿<Window x:Class="TNovElectrical.ElSystemSyncWPF"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:TNovElectrical"
+        Title="Редактирование цепей" Height="420" Width="800"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" WindowStyle="None"
+        x:Name="ThisWindow" BorderBrush="#FF008E43" BorderThickness="1">
+    <Window.Resources>
+        <local:BoolToColorConverter x:Key="BoolToColorConverter"/>
+    
+        <!-- Стиль с полным шаблоном -->
+        <Style x:Key="CustomButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <!-- Убираем SystemColors -->
+                        <ControlTemplate.Resources>
+                            <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" 
+                                     Color="Transparent"/>
+                            <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" 
+                                     Color="Transparent"/>
+                        </ControlTemplate.Resources>
+
+                        <Border x:Name="border"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="2">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="{TemplateBinding Padding}"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <!-- Прямое указание цвета -->
+                                <Setter TargetName="border" 
+                                Property="Background" 
+                                Value="#FF008E43"/>
+                                <!-- Цвет заголовка -->
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" 
+                                Property="Background" 
+                                Value="#FF008E43"/>
+                                <!-- Темнее -->
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" 
+                                Property="Opacity" 
+                                Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="30"
+          ResizeBorderThickness="5"
+          GlassFrameThickness="0"
+          CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+    <Grid Margin="0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <!-- Верхняя панель (кастомный заголовок) -->
+        <Border Height="30" Grid.Row="0"
+        Background="#FF008E43" 
+        VerticalAlignment="Top"
+        MouseDown="Border_MouseDown">
+            <TextBlock Text="Синхронизатор" 
+               Foreground="White"
+               VerticalAlignment="Center"
+               Margin="10,0"/>
+        </Border>
+        <!-- Фильтры -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10">
+            <TextBlock Text="Имя связанного файла:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <ComboBox ItemsSource="{Binding LinkNames}" SelectedItem="{Binding SelectedLinkName}" Width="200" Margin="0,0,10,0"/>
+            <TextBlock Text="Номер цепи:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <ComboBox ItemsSource="{Binding SystemNumbers}" SelectedItem="{Binding SelectedSystemNumber}" Width="100"/>
+        </StackPanel>
+
+        <!-- Текущий номер цепи (readonly) -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="10 0 0 10">
+            <TextBlock Text="Текущий номер цепи:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+            <TextBox Text="{Binding CurrentSystem.AnnoSystemNumber, Mode=OneWay}" IsReadOnly="True" Width="150" BorderThickness="0,0,0,0" ClipToBounds="True"/>
+        </StackPanel>
+
+        <!-- Галочка "Выбрать все" -->
+        <CheckBox Grid.Row="3" Content="Выбрать все" IsChecked="{Binding SelectAll}" HorizontalAlignment="Left" Margin="10 0 0 5"/>
+
+        <!-- Таблица параметров -->
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsEnabled="{Binding HasCurrentSystem}" Margin="5">
+            <StackPanel>
+                <!-- Активная нагрузка -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5" Background="{Binding CurrentSystem.IsPyDifferent, Converter={StaticResource BoolToColorConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelectedPy}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="Py (Установленная мощность)" VerticalAlignment="Center" Margin="5,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentSystem.SystemPy}" Margin="5,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding CurrentSystem.AnnoPy}" Margin="5,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Коэффициент мощности -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5" Background="{Binding CurrentSystem.IsCosfDifferent, Converter={StaticResource BoolToColorConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelectedCosf}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="Cosf (Коэффициент мощности)" VerticalAlignment="Center" Margin="5,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentSystem.SystemCosf}" Margin="5,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding CurrentSystem.AnnoCosf}" Margin="5,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Длина кабеля в группе (общая галочка) -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelectedCableLength}" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                        <TextBlock Grid.Column="1" Text="L (Длина кабеля в группе)" VerticalAlignment="Top" Margin="5,0"/>
+                        <StackPanel Grid.Column="2" Margin="5,0">
+                            <TextBlock Text="{Binding CurrentSystem.SystemConductorL1}"/>
+                            <TextBlock Text="{Binding CurrentSystem.SystemConductorL2}"/>
+                            <TextBlock Text="{Binding CurrentSystem.SystemConductorL3}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Margin="5,0">
+                            <TextBlock Text="{Binding CurrentSystem.AnnoConductorL1}" Background="{Binding CurrentSystem.IsConductorL1Different, Converter={StaticResource BoolToColorConverter}}"/>
+                            <TextBlock Text="{Binding CurrentSystem.AnnoConductorL2}" Background="{Binding CurrentSystem.IsConductorL2Different, Converter={StaticResource BoolToColorConverter}}"/>
+                            <TextBlock Text="{Binding CurrentSystem.AnnoConductorL3}" Background="{Binding CurrentSystem.IsConductorL3Different, Converter={StaticResource BoolToColorConverter}}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- 3-фазный -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5" Background="{Binding CurrentSystem.Is3PhaseDifferent, Converter={StaticResource BoolToColorConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelected3Phase}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="U (Напряжение)" VerticalAlignment="Center" Margin="5,0"/>
+                        <TextBlock Grid.Column="1" Text="{Binding CurrentSystem.SystemVoltage}" VerticalAlignment="Center" Margin="100,0"/>
+                        <StackPanel Grid.Column="2" Orientation="Vertical" Margin="5,0">
+                            <TextBlock Text="{Binding CurrentSystem.ThreePhase}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Orientation="Vertical" Margin="5,0">
+                            <TextBlock Text="{Binding CurrentSystem.Anno3PhaseDevice}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Имя нагрузки -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5" Background="{Binding CurrentSystem.IsLoadNameDifferent, Converter={StaticResource BoolToColorConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelectedLoadName}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="Имя нагрузки" VerticalAlignment="Center" Margin="5,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentSystem.SystemLoadName}" Margin="5,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding CurrentSystem.AnnoDeviceName}" Margin="5,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Количество элементов -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5" Background="{Binding CurrentSystem.IsElemsCountDifferent, Converter={StaticResource BoolToColorConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelectedElemsCount}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="Кол-во электроприемников" VerticalAlignment="Center" Margin="5,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentSystem.SystemElemsCount}" Margin="5,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding CurrentSystem.AnnoElemsCount}" Margin="5,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Способ прокладки -->
+                <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5" Background="{Binding CurrentSystem.IsCableWayDifferent, Converter={StaticResource BoolToColorConverter}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+                        <CheckBox Grid.Column="0" IsChecked="{Binding CurrentSystem.IsSelectedCableWay}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" Text="Способ прокладки" VerticalAlignment="Center" Margin="5,0"/>
+                        <TextBlock Grid.Column="2" Text="{Binding CurrentSystem.SystemCableWay}" Margin="5,0" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="3" Text="{Binding CurrentSystem.AnnoCableWay}" Margin="5,0" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Кнопки -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+            <Button Content="Применить" Style="{StaticResource CustomButtonStyle}" Command="{Binding ApplyCommand}" IsDefault="True" MinHeight="25" Width="120" Margin="0,0,10,0"/>
+            <Button Content="Завершить" Style="{StaticResource CustomButtonStyle}" Command="{Binding ExitCommand}" IsCancel="True" MinHeight="25" Width="120"/>
+        </StackPanel>
+    </Grid>
+</Window>

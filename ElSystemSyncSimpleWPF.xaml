@@ -1,0 +1,170 @@
+﻿<Window x:Class="TNovElectrical.ElSystemSyncSimpleWPF"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Height="350" Width="420"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" WindowStyle="None"
+        AllowsTransparency="True"
+Background="Transparent"
+        x:Name="ThisWindow" Loaded="Window_Loaded">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/TNovCommon;component/ButtonStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="30"
+                      ResizeBorderThickness="5"
+                      GlassFrameThickness="0"
+                      CornerRadius="12"/>
+    </WindowChrome.WindowChrome>
+    <Border CornerRadius="12"
+Background="White"
+BorderBrush="#FF008E43"
+BorderThickness="1">
+        <Grid Margin="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Верхняя панель (кастомный заголовок) -->
+            <Border Height="30" CornerRadius="12 12 0 0"
+    Background="#FF008E43" 
+    VerticalAlignment="Top"
+    MouseDown="Border_MouseDown">
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource RoundButtonStyle}" 
+Click="CancelButton_Click" Content="✕"
+HorizontalAlignment="Center" VerticalAlignment="Center"
+Width="20" Height="20" Margin="5,0"
+WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Style="{StaticResource RoundButtonStyle2}" 
+Click="HelpButton_Click" Content="?"
+HorizontalAlignment="Center" VerticalAlignment="Center"
+Width="20" Height="20" Margin="0"
+WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <TextBlock Text="Синхронизатор" 
+Foreground="White"
+VerticalAlignment="Center"
+Margin="10,0"/>
+                </StackPanel>
+
+            </Border>
+
+            <!-- Фильтры -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10">
+                <TextBlock Text="Имя связанного файла:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <ComboBox x:Name="cmbLinkNames" Width="200" Margin="0,0,10,0"/>
+            </StackPanel>
+
+            <!-- Галочка "Выбрать все" -->
+            <CheckBox x:Name="chkSelectAll" Grid.Row="3" Content="Выбрать все" 
+                  HorizontalAlignment="Left" Margin="10 0 0 5" Click="chkSelectAll_Click"/>
+
+            <!-- Таблица параметров -->
+            <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Auto" Margin="5">
+                <StackPanel>
+                    <!-- Активная нагрузка -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chkPy" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Py (Установленная мощность)" VerticalAlignment="Center" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Коэффициент мощности -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chkCosf" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Cosf (Коэффициент мощности)" VerticalAlignment="Center" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Длина кабеля в группе (общая галочка) -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chkCableLength" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                            <TextBlock Grid.Column="1" Text="L (Длина кабеля в группе)" VerticalAlignment="Top" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- 3-фазный -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chk3Phase" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="U (Напряжение)" VerticalAlignment="Center" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Имя нагрузки -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chkLoadName" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Имя нагрузки" VerticalAlignment="Center" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Количество элементов -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chkElemsCount" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Кол-во электроприемников" VerticalAlignment="Center" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Способ прокладки -->
+                    <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="5">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="2*"/>
+                            </Grid.ColumnDefinitions>
+                            <CheckBox x:Name="chkCableWay" Grid.Column="0" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="Способ прокладки" VerticalAlignment="Center" Margin="5,0"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Кнопки -->
+            <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+                <Button x:Name="btnCancel" Content="Отмена" Style="{StaticResource CustomButtonStyle}" 
+                    IsCancel="True" MinHeight="25" Width="120" Margin="0,0,10,0" Click="CancelButton_Click"/>
+                <Button x:Name="btnApply" Content="Применить" Style="{StaticResource CustomButtonStyle}" 
+                    IsDefault="True" MinHeight="25" Width="120" Click="ApplyButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>
