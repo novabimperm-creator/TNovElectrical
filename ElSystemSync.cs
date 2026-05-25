@@ -367,6 +367,7 @@ namespace TNovElectrical
             this.Class1ProgressBar.TNov_ProgressBar.Dispatcher.Invoke<double>((Func<double>)(() => this.Class1ProgressBar.TNov_ProgressBar.Maximum = elSystems.Count));
             this.Class1ProgressBar.TNov_ProgressBar.Dispatcher.Invoke<string>((Func<string>)(() => this.Class1ProgressBar.maxvalue.Text = elSystems.Count.ToString()));
 
+            bool unhandledError = false;
             #region Основной код
             using (Transaction t = new Transaction(RevitAPI.Document, "TNov - Синхронизатор"))
             {
@@ -504,6 +505,8 @@ namespace TNovElectrical
                 catch (Exception ex)
                 {
                     Logger.Log("Ошибка: " + ex.Message, 4);
+                    new InfoWindow280("Ошибка: " + ex.Message).ShowDialog();
+                    unhandledError = true;
                 }
                 finally
                 {
@@ -511,6 +514,13 @@ namespace TNovElectrical
                 }
             }
             #endregion
+
+            if (unhandledError)
+            {
+                Logger.Log("Завершение работы с ошибками.", 4);
+                return Result.Succeeded;
+            }
+
             Logger.Log("Завершение работы.", 5);
             return Result.Succeeded;
         }

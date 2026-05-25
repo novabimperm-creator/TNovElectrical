@@ -109,6 +109,7 @@ namespace TNovElectrical
             //double vs_d = 90; double op_d = 2730;
             #endregion
             Logger.Log("Значения по умолчанию заданы: "+ vs_d.ToString() + " и " + op_d.ToString() + ". Открываем транзакцию",1);
+            bool unhandledError = false;
             #region Основной код
             using (Transaction transaction = new Transaction(doc))
             {
@@ -248,16 +249,27 @@ namespace TNovElectrical
                     catch (Exception ex)
                 {
                     Logger.Log("Ошибка: " + ex.Message, 4);
+                    new InfoWindow280("Ошибка: " + ex.Message).ShowDialog();
+                    unhandledError = true;
                 }
 
-                string info1txt;
-                if (els.Count > 0)
-                { info1txt = "Параметры заполнены у " + els.Count.ToString() + " элементов.";} else { info1txt = "Нечего обрабатывать."; }
-                var info1 = new InfoWindow280(info1txt); info1.ShowDialog();
                 
 
             }
             #endregion
+
+            if (unhandledError)
+            {
+                Logger.Log("Завершение работы с ошибками.", 4);
+                return Result.Succeeded;
+            }
+
+            string info2txt;
+            if (els.Count > 0)
+            { info2txt = "Параметры заполнены у " + els.Count.ToString() + " элементов."; }
+            else { info2txt = "Нечего обрабатывать."; }
+            var info2 = new InfoWindow280(info2txt); info2.ShowDialog();
+
 
             Logger.Log("Завершение работы.", 5);
             return Result.Succeeded;

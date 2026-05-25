@@ -178,6 +178,7 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
 
             List<string> badElementIds = new List<string>();
 
+            bool unhandledError = false;
             #region Основной код
             using (Transaction t = new Transaction(doc))
             {
@@ -354,6 +355,8 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
                 catch (Exception ex)
                 {
                     Logger.Log("Ошибка: " + ex.Message, 4);
+                    new InfoWindow280("Ошибка: " + ex.Message).ShowDialog();
+                    unhandledError = true;
                 }
             }
             #endregion
@@ -370,6 +373,13 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
                 var wpfview2 = new InfoWindowTextField(viewModel2);
                 bool? ok2 = wpfview2.ShowDialog();
             }
+
+            if (unhandledError)
+            {
+                Logger.Log("Завершение работы с ошибками.", 4);
+                return Result.Succeeded;
+            }
+
             Logger.Log("Завершение работы", 5);
             return Result.Succeeded;
         }

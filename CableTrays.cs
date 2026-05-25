@@ -249,7 +249,7 @@ namespace TNovElectrical
 
             int count1 = 0; int count2 = 0;
 
-
+            bool unhandledError = false;
             //транзакции
 
             #region Основной код. Крышки
@@ -414,6 +414,8 @@ namespace TNovElectrical
                 catch (Exception ex)
                 {
                     Logger.Log("Ошибка: " + ex.Message, 4);
+                    new InfoWindow280("Ошибка: " + ex.Message).ShowDialog();
+                    unhandledError = true;
                 }
             }
             #endregion
@@ -709,6 +711,11 @@ namespace TNovElectrical
             }
             #endregion
 
+            if (unhandledError)
+            {
+                Logger.Log("Завершение работы с ошибками.", 4);
+                return Result.Succeeded;
+            }
 
             //сообщение об успехе
 
