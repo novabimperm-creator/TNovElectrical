@@ -461,8 +461,13 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
             List<AnnotationSymbol> currentSelection = new List<AnnotationSymbol>();
             foreach (ElementId elementId in (IEnumerable<ElementId>)elementIds)
             {
+#if R2022
                 if (doc.GetElement(elementId) is AnnotationSymbol && doc.GetElement(elementId).Category != null && doc.GetElement(elementId).Category.Id.IntegerValue.Equals(-2000150)&& doc.GetElement(elementId).Name.Contains("TSL_2D автоматический выключатель_ВРУ"))
                     currentSelection.Add(doc.GetElement(elementId) as AnnotationSymbol);
+#else
+                if (doc.GetElement(elementId) is AnnotationSymbol && doc.GetElement(elementId).Category != null && doc.GetElement(elementId).Category.Id.Value.Equals(-2000150) && doc.GetElement(elementId).Name.Contains("TSL_2D автоматический выключатель_ВРУ"))
+                    currentSelection.Add(doc.GetElement(elementId) as AnnotationSymbol);
+#endif
             }
             return currentSelection;
         }
@@ -472,7 +477,12 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
     {
         public bool AllowElement(Element elem)
         {
-            if (elem.Category.Id.IntegerValue == -2000150) { return true; }
+#if R2022
+                    int categoryId = elem.Category.Id.IntegerValue;
+#else
+            int categoryId = (int)elem.Category.Id.Value;
+#endif
+            if (categoryId == -2000150) { return true; }
             else return false;
         }
 

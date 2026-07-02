@@ -197,6 +197,11 @@ namespace TNovElectrical
             {
                 bool addtolist1 = false; bool addtolist2 = false; //не добавлять по умолчанию
                 Element elem1 = doc.GetElement(ct.Id);
+#if R2022
+                long ctId = ct.Id.IntegerValue;
+#else
+                long ctId = ct.Id.Value;
+#endif
                 string type = doc.GetElement(elem1.GetTypeId()).Name;
                 Logger.Log("Лотки для крышек:",1);
                 if (type.Contains(filter1)) //исключаем лотки, которым не нужны крышки
@@ -214,7 +219,7 @@ namespace TNovElectrical
                                 int.TryParse(mrkstr, out mrkint);
                                 if (mrkint != 0)
                                 {
-                                    if (ct.Id.IntegerValue == mrkint ) { addtolist1 = false; break; }
+                                    if (ctId == mrkint ) { addtolist1 = false; break; }
                                 }
                             }
                         }
@@ -236,7 +241,7 @@ namespace TNovElectrical
                                 int.TryParse(mrkstr, out mrkint);
                                 if (mrkint != 0)
                                 {
-                                    if (ct.Id.IntegerValue == mrkint) { addtolist2 = false; break; }
+                                    if (ctId == mrkint) { addtolist2 = false; break; }
                                 }
                             }
                         }
@@ -333,8 +338,14 @@ namespace TNovElectrical
                                 foreach (CableTray ct in CTList1)
                                 {
                                     Element elem1 = doc.GetElement(ct.Id);
-                                    int ctid = elem1.Id.IntegerValue;
-                                    if (ctid == mrkint) { capstoremove.Add(cap.Id); ctr++; break; }
+#if R2022
+                long elem1Id = elem1.Id.IntegerValue;
+#else
+                                        long elem1Id = elem1.Id.Value;
+#endif
+
+                                        
+                                    if (elem1Id == mrkint) { capstoremove.Add(cap.Id); ctr++; break; }
                                 }
                             }
                         }
@@ -498,8 +509,13 @@ namespace TNovElectrical
                                     foreach (CableTray ct in CTList1)
                                     {
                                         Element elem1 = doc.GetElement(ct.Id);
-                                        int ctid = elem1.Id.IntegerValue;
-                                        if (ctid == mrkint) { partitionstoremove.Add(pt.Id); ptr++; break; }
+#if R2022
+                long elem1Id = elem1.Id.IntegerValue;
+#else
+                                        long elem1Id = elem1.Id.Value;
+#endif
+                                        
+                                        if (elem1Id == mrkint) { partitionstoremove.Add(pt.Id); ptr++; break; }
                                     }
                                 }
                             }

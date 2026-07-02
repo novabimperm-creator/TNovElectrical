@@ -183,7 +183,11 @@ namespace TNovElectrical
             //параметры выбранных автоматов
             foreach (AnnotationSymbol annoSymbol in annoList1)
             {
+#if R2022
                 Logger.Log($"   {annoSymbol.Id.IntegerValue.ToString()}", 1);
+#else
+                Logger.Log($"   {annoSymbol.Id.Value.ToString()}", 1);
+#endif
                 string annoSystemNumber = "";
                 if (Param.ParamExist("Номер цепи", annoSymbol) && annoSymbol.LookupParameter("Номер цепи").HasValue)
                 {
@@ -338,7 +342,11 @@ namespace TNovElectrical
                                 AnnoElemsCount = annoElemsCount,
                                 SystemCableWay = systemCableWay,
                                 AnnoCableWay = annoCableWay,
+#if R2022
                                 AnnoId = annoSymbol.Id.IntegerValue,
+#else
+                                AnnoId = (int)annoSymbol.Id.Value,
+#endif
                             };
                             elSystems.Add(elSystem);
                         }
@@ -353,7 +361,7 @@ namespace TNovElectrical
 
 
             }
-            #endregion
+#endregion
 
             Thread thread = new Thread(new ThreadStart(this.ThreadStartingPoint));
             thread.SetApartmentState(ApartmentState.STA);
