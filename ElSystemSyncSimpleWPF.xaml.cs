@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
+using TNovCommon;
 
 namespace TNovElectrical
 {
@@ -36,10 +37,10 @@ namespace TNovElectrical
                 cmbLinkNames.SelectedIndex = 0;
         }
 
-        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.LeftButton == MouseButtonState.Pressed)
-                this.DragMove();
+            if (e.ChangedButton == MouseButton.Left)
+                DragMove();
         }
 
         private void chkSelectAll_Click(object sender, RoutedEventArgs e)
@@ -82,7 +83,7 @@ namespace TNovElectrical
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            string commandText = @"https://portal.talan.group/knowledge/proektirovanie/plaginyiskriptynovatsiya/";
+            string commandText = HelpLinks.GetHelpLink("-");
             var proc = new System.Diagnostics.Process();
             proc.StartInfo.FileName = commandText;
             proc.StartInfo.UseShellExecute = true;

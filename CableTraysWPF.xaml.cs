@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 using TNovCommon;
 
 namespace TNovElectrical
@@ -26,14 +27,15 @@ namespace TNovElectrical
             this.Close(); // закрытие окна
         }
 
-        private void Border_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
-
+            if (e.ChangedButton == MouseButton.Left)
+                DragMove();
         }
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            string commandText = @"https://portal.talan.group/knowledge/proektirovanie/lotki/";
+            string commandText = HelpLinks.GetHelpLink("Лотки");
             var proc = new System.Diagnostics.Process();
             proc.StartInfo.FileName = commandText;
             proc.StartInfo.UseShellExecute = true;

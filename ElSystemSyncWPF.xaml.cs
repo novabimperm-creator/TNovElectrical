@@ -35,18 +35,31 @@ namespace TNovElectrical
 
         public ElSystem SelectedSystem => (DataContext as ElSystemSyncViewModel)?.CurrentSystem;
 
-        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
+        private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (e.ChangedButton == MouseButton.Left)
+                DragMove();
+        }
 
+        private void HelpButton_Click(object sender, RoutedEventArgs e)
+        {
+            string commandText = @"https://portal.talan.group/knowledge/proektirovanie/plaginyiskriptynovatsiya/";
+            var proc = new System.Diagnostics.Process();
+            proc.StartInfo.FileName = commandText;
+            proc.StartInfo.UseShellExecute = true;
+            proc.Start();
         }
     }
     public class BoolToColorConverter : IValueConverter
     {
+        private static readonly SolidColorBrush DiffBrush = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#5C4030"));
+        private static readonly SolidColorBrush TransparentBrush = new SolidColorBrush(Colors.Transparent);
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is bool isDifferent && isDifferent)
-                return new SolidColorBrush(Colors.LightSalmon);
-            return new SolidColorBrush(Colors.Transparent); // или любой цвет по умолчанию
+                return DiffBrush;
+            return TransparentBrush;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
