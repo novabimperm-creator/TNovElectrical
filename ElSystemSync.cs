@@ -113,6 +113,7 @@ namespace TNovElectrical
 
             List<ElSystem> elSystems = new List<ElSystem>(); //список ElSystem
             List<string> linkNames = new List<string>(); //список связей для окна
+            linkNames.Add("Текущий файл");//текущий файл — первый и выбран по умолчанию
 
             foreach(var link in links)
             {
@@ -121,7 +122,6 @@ namespace TNovElectrical
                 string linkName = titleParts[0].TrimEnd(' ');
                 linkNames.Add(linkName);
             }
-            linkNames.Add("Текущий файл");//добавляем возможность работы с цепями в текущем файле
 
             #endregion
 

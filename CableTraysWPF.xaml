@@ -148,6 +148,25 @@
                                  TextAlignment="Center"/>
                     </Grid>
 
+                    <TextBlock Text="Деление лотков"
+                               Style="{StaticResource SectionTitleStyle}"
+                               Margin="0,0,0,6"/>
+
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="220"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Макс. длина лотка, м:"
+                                   Foreground="{StaticResource MutedBrush}"
+                                   VerticalAlignment="Center"/>
+                        <TextBox Grid.Column="1"
+                                 Name="textBoxMaxLength"
+                                 Text="{Binding maxLength}"
+                                 Style="{StaticResource DarkCompactTextBoxStyle}"
+                                 TextAlignment="Center"/>
+                    </Grid>
+
                     <TextBlock Text="Дополнительные опции"
                                Style="{StaticResource SectionTitleStyle}"
                                Margin="0,0,0,6"/>

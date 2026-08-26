@@ -127,7 +127,53 @@ namespace TNovElectrical
 
             string types = viewModel.types; string filter1 = viewModel.filter1; string filter2 = viewModel.filter2; bool replace = viewModel.replace; bool remove = viewModel.remove;
             string capname = viewModel.capname; string ptname = viewModel.ptname;
+            double maxLengthM = viewModel.maxLength > 0 ? viewModel.maxLength : 3.0;
             Logger.Log(types,1);
+
+            #endregion
+
+            #region Деление лотков
+
+            Logger.Log("Деление длинных лотков", 1);
+            double maxLengthInternal = UnitUtils.ConvertToInternalUnits(maxLengthM, UnitTypeId.Meters);
+            Logger.Log("Макс. длина лотка: " + maxLengthM.ToString() + " м", 1);
+
+            int splitCreated = 0;
+            using (Transaction transactionSplit = new Transaction(doc))
+            {
+                try
+                {
+                    transactionSplit.Start("TNov - Лотки.Деление");
+                    TransactionHandler.SetWarningResolver(transactionSplit);
+
+                    foreach (CableTray ct in CTList1.ToList())
+                    {
+                        splitCreated += SplitCableTrayIfNeeded(doc, ct, maxLengthInternal);
+                    }
+
+                    transactionSplit.Commit();
+                    Logger.Log("Деление завершено. Создано дополнительных сегментов: " + splitCreated.ToString(), 1);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Ошибка при делении лотков: " + ex.Message, 4);
+                    new InfoWindow280("Ошибка при делении лотков: " + ex.Message).ShowDialog();
+                }
+            }
+
+            // Обновляем списки лотков после деления
+            CTList = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_CableTray)
+                                                     .WhereElementIsNotElementType()
+                                                     .Cast<CableTray>()
+                                                     .ToList();
+            CTList1 = new List<CableTray>();
+            foreach (CableTray ct in CTList)
+            {
+                Element elem = doc.GetElement(ct.Id);
+                Parameter notSpec = elem.LookupParameter("N_ЭЛ.Не специфицировать");
+                int parval = notSpec != null ? notSpec.AsInteger() : 0;
+                if (parval != 1) { CTList1.Add(ct); }
+            }
 
             #endregion
 
@@ -755,6 +801,199 @@ namespace TNovElectrical
             }
             Logger.Log("Завершение работы.", 5);
             return Result.Succeeded;
+        }
+
+        // Делит лоток при длине > maxLength: при длине < 2×maxLength — пополам, иначе — части по maxLength (с остатком).
+        // В местах стыка вставляет «Соединение» по настройке типоразмера лотка (NewUnionFitting).
+        // Возвращает число созданных дополнительных сегментов.
+        private static int SplitCableTrayIfNeeded(Document doc, CableTray tray, double maxLength)
+        {
+            if (tray == null || !tray.IsValidObject) return 0;
+
+            LocationCurve loc = tray.Location as LocationCurve;
+            if (loc?.Curve == null) return 0;
+
+            double length = loc.Curve.Length;
+            const double tol = 1.0 / 304.8; // 1 мм
+            if (length <= maxLength + tol) return 0;
+
+            List<double> segmentLengths = new List<double>();
+            if (length < 2.0 * maxLength)
+            {
+                double half = length / 2.0;
+                segmentLengths.Add(half);
+                segmentLengths.Add(half);
+            }
+            else
+            {
+                int fullParts = (int)Math.Floor(length / maxLength);
+                double remainder = length - fullParts * maxLength;
+                for (int i = 0; i < fullParts; i++)
+                    segmentLengths.Add(maxLength);
+                if (remainder > tol)
+                    segmentLengths.Add(remainder);
+                else if (remainder > 0 && segmentLengths.Count > 0)
+                    segmentLengths[segmentLengths.Count - 1] += remainder;
+            }
+
+            if (segmentLengths.Count < 2) return 0;
+
+            int created = 0;
+            CableTray current = tray;
+
+            for (int i = 0; i < segmentLengths.Count - 1; i++)
+            {
+                if (current == null || !current.IsValidObject) break;
+
+                LocationCurve currentLoc = current.Location as LocationCurve;
+                if (currentLoc?.Curve == null) break;
+
+                Curve curve = currentLoc.Curve;
+                double curLen = curve.Length;
+                if (curLen <= tol * 2) break;
+
+                XYZ actualStart = curve.GetEndPoint(0);
+                XYZ currentEnd = curve.GetEndPoint(1);
+
+                double cutLen = segmentLengths[i];
+                if (cutLen >= curLen - tol * 2)
+                    cutLen = curLen / 2.0;
+
+                XYZ breakPt = curve.Evaluate(cutLen / curLen, true);
+
+                List<Connector> endRefs = GetConnectedRefsAtPoint(current, currentEnd);
+
+                ICollection<ElementId> copiedIds = ElementTransformUtils.CopyElement(doc, current.Id, XYZ.Zero);
+                CableTray newTray = doc.GetElement(copiedIds.First()) as CableTray;
+                if (newTray == null) break;
+
+                DisconnectAtPoint(current, currentEnd);
+
+                // Старт текущего сегмента не трогаем (может быть уже стык с предыдущим соединением)
+                currentLoc.Curve = Line.CreateBound(actualStart, breakPt);
+                (newTray.Location as LocationCurve).Curve = Line.CreateBound(breakPt, currentEnd);
+
+                doc.Regenerate();
+
+                PlaceUnionFittingAtPoint(doc, current, newTray, breakPt);
+                ReconnectRefsToTray(newTray, currentEnd, endRefs);
+
+                Logger.Log("   Лоток разделён: " + current.Id.ToString() + " + " + newTray.Id.ToString(), 2);
+
+                created++;
+                current = newTray;
+            }
+
+            return created;
+        }
+
+        private static List<Connector> GetConnectedRefsAtPoint(CableTray tray, XYZ point)
+        {
+            var result = new List<Connector>();
+            foreach (Connector c in tray.ConnectorManager.Connectors)
+            {
+                if (c.ConnectorType != ConnectorType.End) continue;
+                if (!c.Origin.IsAlmostEqualTo(point, 1e-4)) continue;
+                foreach (Connector r in c.AllRefs)
+                {
+                    if (r.Owner.Id != tray.Id)
+                        result.Add(r);
+                }
+            }
+            return result;
+        }
+
+        private static void DisconnectAtPoint(CableTray tray, XYZ point)
+        {
+            foreach (Connector c in tray.ConnectorManager.Connectors)
+            {
+                if (c.ConnectorType != ConnectorType.End) continue;
+                if (!c.Origin.IsAlmostEqualTo(point, 1e-4)) continue;
+
+                List<Connector> refs = new List<Connector>();
+                foreach (Connector r in c.AllRefs)
+                {
+                    if (r.Owner.Id != tray.Id)
+                        refs.Add(r);
+                }
+                foreach (Connector r in refs)
+                {
+                    if (c.IsConnectedTo(r))
+                        c.DisconnectFrom(r);
+                }
+            }
+        }
+
+        private static void ReconnectRefsToTray(CableTray tray, XYZ point, List<Connector> refs)
+        {
+            Connector trayConn = FindEndConnectorAt(tray, point);
+            if (trayConn == null) return;
+
+            foreach (Connector r in refs)
+            {
+                try
+                {
+                    if (!trayConn.IsConnectedTo(r))
+                        trayConn.ConnectTo(r);
+                }
+                catch { /* соединение может быть недоступно после копирования */ }
+            }
+        }
+
+        // Вставляет соединительную деталь по настройке типоразмера лотка (RBS_CURVETYPE_DEFAULT_UNION_PARAM).
+        private static void PlaceUnionFittingAtPoint(Document doc, CableTray a, CableTray b, XYZ point)
+        {
+            Connector ca = FindEndConnectorAt(a, point);
+            Connector cb = FindEndConnectorAt(b, point);
+            if (ca == null || cb == null)
+            {
+                Logger.Log("   Не найдены коннекторы для соединения в точке " + point.ToString(), 3);
+                return;
+            }
+
+            try
+            {
+                if (ca.IsConnectedTo(cb))
+                    ca.DisconnectFrom(cb);
+            }
+            catch { }
+
+            try
+            {
+                FamilyInstance union = doc.Create.NewUnionFitting(ca, cb);
+                if (union != null)
+                    Logger.Log("   Установлено соединение Id=" + union.Id.ToString(), 2);
+                else
+                    Logger.Log("   NewUnionFitting вернул null", 3);
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("   Не удалось создать соединение: " + ex.Message, 3);
+                try
+                {
+                    if (!ca.IsConnected)
+                        ca.ConnectTo(cb);
+                }
+                catch { }
+            }
+        }
+
+        private static Connector FindEndConnectorAt(CableTray tray, XYZ point)
+        {
+            const double connTol = 0.01; // ~3 мм — после regenerate координаты могут чуть съехать
+            Connector best = null;
+            double bestDist = double.MaxValue;
+            foreach (Connector c in tray.ConnectorManager.Connectors)
+            {
+                if (c.ConnectorType != ConnectorType.End) continue;
+                double d = c.Origin.DistanceTo(point);
+                if (d < bestDist && d <= connTol)
+                {
+                    bestDist = d;
+                    best = c;
+                }
+            }
+            return best;
         }
         
     }

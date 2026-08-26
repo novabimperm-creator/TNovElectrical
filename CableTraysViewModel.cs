@@ -31,6 +31,9 @@ namespace TNovElectrical
         private string _ptname = "Перегородка лотка";
         public string ptname { get => _ptname; set { _ptname = value; OnPropertyChanged(); } }
 
+        private double _maxLength = 3.0;
+        public double maxLength { get => _maxLength; set { _maxLength = value; OnPropertyChanged(); } }
+
         public event EventHandler CloseRequest;
         private void RaiseCloseRequest()
         {
