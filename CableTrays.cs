@@ -68,7 +68,7 @@ namespace TNovElectrical
             #endregion
 
             bool ss = false;
-            if (docName.Contains("СС") || docName.Contains("-СС") || docName.Contains("_СС")) ss = true;
+            if (docName.Contains("-СС") || docName.Contains("_СС") || docName.Contains("-ПС") || docName.Contains("_ПС")) ss = true;
 
             #region Сбор элементов
 
