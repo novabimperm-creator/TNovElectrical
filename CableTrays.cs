@@ -465,6 +465,10 @@ namespace TNovElectrical
                     }
                 }
 
+                doc.Regenerate();
+                Logger.Log("Назначаем ADSK_Группирование крышкам по марке лотка", 1);
+                AssignAdskGroupingFromMark(doc, CollectGenericModels(doc, capname));
+
                 transaction1.Commit();
                 Logger.Log("Закрываем транзакцию 1", 1);
                 }
@@ -632,6 +636,10 @@ namespace TNovElectrical
                         }
                     }
 
+                    doc.Regenerate();
+                    Logger.Log("Назначаем ADSK_Группирование перегородкам по марке лотка", 1);
+                    AssignAdskGroupingFromMark(doc, CollectGenericModels(doc, ptname));
+
                     transaction2.Commit();
                     Logger.Log("Закрываем транзакцию 2", 1);
                 }
@@ -642,6 +650,28 @@ namespace TNovElectrical
             }
             #endregion
 
+            #region ADSK_Группирование по марке лотка
+
+            using (Transaction transactionGrouping = new Transaction(doc))
+            {
+                try
+                {
+                    transactionGrouping.Start("TNov - Лотки.Группирование");
+                    TransactionHandler.SetWarningResolver(transactionGrouping);
+                    Logger.Log("Назначаем ADSK_Группирование крышкам и перегородкам по марке лотка", 1);
+                    List<FamilyInstance> groupingTargets = CollectGenericModels(doc, capname);
+                    groupingTargets.AddRange(CollectGenericModels(doc, ptname));
+                    AssignAdskGroupingFromMark(doc, groupingTargets);
+                    transactionGrouping.Commit();
+                    Logger.Log("Закрываем транзакцию группирования", 1);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Log("Ошибка при назначении ADSK_Группирование: " + ex.Message, 4);
+                }
+            }
+
+            #endregion
 
             #region Рабочий набор
 
@@ -801,6 +831,140 @@ namespace TNovElectrical
             }
             Logger.Log("Завершение работы.", 5);
             return Result.Succeeded;
+        }
+
+        private static List<FamilyInstance> CollectGenericModels(Document doc, string familyNamePart)
+        {
+            List<FamilyInstance> result = new List<FamilyInstance>();
+            List<FamilyInstance> gms = new FilteredElementCollector(doc)
+                .OfCategory(BuiltInCategory.OST_GenericModel)
+                .WhereElementIsNotElementType()
+                .OfClass(typeof(FamilyInstance))
+                .Cast<FamilyInstance>()
+                .ToList();
+            foreach (FamilyInstance g in gms)
+            {
+                if (g.Symbol.FamilyName.Contains(familyNamePart))
+                    result.Add(g);
+            }
+            return result;
+        }
+
+        private static ElementId CreateElementId(long value)
+        {
+#if R2022
+            return new ElementId((int)value);
+#else
+            return new ElementId(value);
+#endif
+        }
+
+        private static Parameter FindWritableParameter(Element elem, string paramName)
+        {
+            if (elem == null) return null;
+            IList<Parameter> pars = elem.GetParameters(paramName);
+            foreach (Parameter p in pars)
+            {
+                if (p != null && !p.IsReadOnly)
+                    return p;
+            }
+            return null;
+        }
+
+        private static Parameter FindParameter(Element elem, string paramName)
+        {
+            if (elem == null) return null;
+            IList<Parameter> pars = elem.GetParameters(paramName);
+            foreach (Parameter p in pars)
+            {
+                if (p != null) return p;
+            }
+            return elem.LookupParameter(paramName);
+        }
+
+        // Находит лоток по Марке (DOOR_NUMBER) крышки/перегородки и копирует ADSK_Группирование.
+        private static void AssignAdskGroupingFromMark(Document doc, IEnumerable<FamilyInstance> targets)
+        {
+            foreach (FamilyInstance target in targets)
+            {
+                if (target == null || !target.IsValidObject) continue;
+                AssignAdskGroupingFromMark(doc, target);
+            }
+        }
+
+        private static void AssignAdskGroupingFromMark(Document doc, Element target)
+        {
+            Parameter markParam = target.get_Parameter(BuiltInParameter.DOOR_NUMBER);
+            string markStr = markParam != null ? markParam.AsString() : null;
+            if (string.IsNullOrWhiteSpace(markStr))
+                return;
+
+            if (!long.TryParse(markStr, out long trayIdValue) || trayIdValue == 0)
+                return;
+
+            Element tray = doc.GetElement(CreateElementId(trayIdValue));
+            if (tray == null || !tray.IsValidObject)
+            {
+                Logger.Log("   Лоток Id=" + markStr + " не найден для элемента " + target.Id.ToString(), 3);
+                return;
+            }
+
+            CopyAdskGrouping(doc, tray, target);
+        }
+
+        // Копирует ADSK_Группирование с лотка на крышку/перегородку.
+        private static void CopyAdskGrouping(Document doc, Element tray, Element target)
+        {
+            const string paramName = "ADSK_Группирование";
+            Parameter dst = FindWritableParameter(target, paramName);
+            if (dst == null)
+            {
+                Logger.Log("   Параметр ADSK_Группирование у элемента " + target.Id.ToString() + " отсутствует или недоступен для записи", 3);
+                return;
+            }
+
+            Parameter src = FindParameter(tray, paramName);
+            if (src == null)
+            {
+                Element type = doc.GetElement(tray.GetTypeId());
+                src = FindParameter(type, paramName);
+            }
+            if (src == null)
+            {
+                Logger.Log("   Параметр ADSK_Группирование у лотка " + tray.Id.ToString() + " отсутствует", 3);
+                return;
+            }
+
+            try
+            {
+                switch (src.StorageType)
+                {
+                    case StorageType.String:
+                        if (dst.StorageType == StorageType.String)
+                        {
+                            string value = src.AsString() ?? "";
+                            dst.Set(value);
+                            Logger.Log("   Элемент " + target.Id.ToString() + " ADSK_Группирование: " + value, 2);
+                        }
+                        break;
+                    case StorageType.Integer:
+                        if (dst.StorageType == StorageType.Integer)
+                            dst.Set(src.AsInteger());
+                        break;
+                    case StorageType.Double:
+                        if (dst.StorageType == StorageType.Double)
+                            dst.Set(src.AsDouble());
+                        break;
+                    case StorageType.ElementId:
+                        if (dst.StorageType == StorageType.ElementId)
+                            dst.Set(src.AsElementId());
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Log("   Не удалось назначить ADSK_Группирование элементу " + target.Id.ToString() + ": " + ex.Message, 3);
+            }
         }
 
         // Делит лоток при длине > maxLength: при длине < 2×maxLength — пополам, иначе — части по maxLength (с остатком).
