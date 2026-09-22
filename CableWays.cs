@@ -151,18 +151,13 @@ namespace TNovElectrical
             #region Списки
 
             //списки из параметров vM
-            string[] pipeWays = new string[]
-            {
-viewModel.pipeWay1, viewModel.pipeWay2, viewModel.pipeWay3, viewModel.pipeWay4, viewModel.pipeWay5
-//"гофр. ПВХ", "гофр. ПНД(т)", "МР(г)", "гофр. ПА", "ст."
-            };
-            string[] pipeTypes = new string[]
-            {
-viewModel.pipeType1, viewModel.pipeType2, viewModel.pipeType3, viewModel.pipeType4, viewModel.pipeType5
-//"IEK | Труба гофрированная из ПВХ", "IEK | Труба гофрированная из ПНД (тяжелая)", "DKC | Металлорукав в герметичной ПВХ-оболочке", 
-               // "DKC | Труба индустриальная гофрированная из не распространяющего горение полиамида (серия F0)",
-               //"Труба стальная электросварная (толщина стенки 1.5 мм)"
-            };
+            //тип трубы = способ прокладки: одно и то же значение ищем в исходной строке и пишем в Т_Тип
+            string[] pipeTypes = viewModel.pipeTypes == null
+                ? new string[0]
+                : viewModel.pipeTypes.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).ToArray();
+            if (pipeTypes.Length == 0) Logger.Log("Список типов труб пуст - длины по трубам записаны не будут", 3);
+            else Logger.Log("Типы труб: " + String.Join("; ", pipeTypes), 1);
+
             string[] simpleTypePars = new string[]
             {
 viewModel.sTypePar1, viewModel.sTypePar2, viewModel.sTypePar3, viewModel.sTypePar4, viewModel.sTypePar5
@@ -222,7 +217,7 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
                             string[] parts = part.Split('-');
                             bool pipeWay = false;
 
-                            foreach (var way in pipeWays) //список pipeWays получаем из viewModel
+                            foreach (var way in pipeTypes) //список типов труб получаем из viewModel
                             {
                                 if (parts[0].Contains(way))
                                 {
@@ -259,15 +254,15 @@ viewModel.sPar1, viewModel.sPar2, viewModel.sPar3, viewModel.sPar4, viewModel.sP
                                         Logger.Log("Параметр " + param + ": " + doubleValue.ToString(), 2);
                                     }
                                     //назначаем Т_Тип
-                                    for (int i = 0; i < pipeWays.Length; i++)
+                                    foreach (string pipeType in pipeTypes)
                                     {
-                                        if (parts[0].Contains(pipeWays[i]))
+                                        if (parts[0].Contains(pipeType))
                                         {
                                             Parameter par = elem.LookupParameter(paramPipe);
                                             if (par != null)
                                             {
-                                                par.Set(pipeTypes[i]);
-                                                Logger.Log("Параметр " + paramPipe + ": " + pipeTypes[i], 2);
+                                                par.Set(pipeType);
+                                                Logger.Log("Параметр " + paramPipe + ": " + pipeType, 2);
                                             }
                                         }
                                     }

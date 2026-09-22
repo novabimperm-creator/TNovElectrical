@@ -5,9 +5,9 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:TNovElectrical"
         mc:Ignorable="d"
-        Width="720"
+        Width="440"
         SizeToContent="Height"
-        MaxHeight="720"
+        MaxHeight="620"
         d:DataContext="{d:DesignInstance local:CableWaysViewModel}"
         WindowStartupLocation="CenterScreen"
         AllowsTransparency="True"
@@ -20,6 +20,78 @@
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/TNovCommon;component/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <!-- стикер типа трубы -->
+            <Style x:Key="StickerBorderStyle" TargetType="Border">
+                <Setter Property="Background" Value="{StaticResource TreeToggleBrush}"/>
+                <Setter Property="CornerRadius" Value="13"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="10,0,4,0"/>
+                <Setter Property="Margin" Value="0,0,6,6"/>
+            </Style>
+
+            <!-- мини-кнопка "х" внутри стикера -->
+            <Style x:Key="StickerCloseButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="18"/>
+                <Setter Property="Height" Value="18"/>
+                <Setter Property="Margin" Value="6,0,0,0"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="FontSize" Value="10"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="9">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource SelectedHoverBrush}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- кнопка "+" в виде стикера -->
+            <Style x:Key="AddStickerButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="26"/>
+                <Setter Property="Height" Value="26"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="FontSize" Value="15"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                <Setter Property="Background" Value="{StaticResource TreeToggleBrush}"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="bd"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="13">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="bd" Property="Background" Value="{StaticResource SelectedHoverBrush}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -55,7 +127,7 @@
                     <TextBlock Text="СПОСОБЫ ПРОКЛАДКИ"
                                Grid.Column="0"
                                Foreground="{StaticResource AccentBrush}"
-                               FontSize="20"
+                               FontSize="18"
                                FontWeight="Bold"
                                VerticalAlignment="Center"/>
                     <Button Content="i"
@@ -75,133 +147,61 @@
                           VerticalScrollBarVisibility="Auto"
                           Margin="0,0,0,12">
                 <StackPanel>
-                    <TextBlock Text="Запись длины по способам прокладки"
-                               Style="{StaticResource SectionTitleStyle}"/>
+                    <TextBlock Text="Типы труб"
+                               Style="{StaticResource SectionTitleStyle}"
+                               Margin="0,0,0,2"/>
+                    <TextBlock Text="Значение ищется в исходной строке и записывается в параметр типа трубы"
+                               Foreground="{StaticResource MutedBrush}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,10"/>
 
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="180"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="В параметр" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding sPar1}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="записать длину со способом прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding sTypePar1}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="180"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="В параметр" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding sPar2}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="записать длину со способом прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding sTypePar2}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="180"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="В параметр" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding sPar3}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="записать длину со способом прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding sTypePar3}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="180"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="В параметр" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding sPar4}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="записать длину со способом прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding sTypePar4}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="180"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="В параметр" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding sPar5}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="записать длину со способом прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding sTypePar5}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
+                    <ItemsControl ItemsSource="{Binding pipeTypes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource StickerBorderStyle}">
+                                    <StackPanel Orientation="Horizontal"
+                                                VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding}"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   FontSize="12"
+                                                   VerticalAlignment="Center"/>
+                                        <Button Content="✕"
+                                                Style="{StaticResource StickerCloseButtonStyle}"
+                                                ToolTip="Удалить из списка"
+                                                Command="{Binding DataContext.RemovePipeTypeCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
 
-                    <TextBlock Text="Соотнесение типа трубы и способа прокладки"
-                               Style="{StaticResource SectionTitleStyle}"/>
-
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="260"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="тип трубы" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding pipeType1}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="для способа прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding pipeWay1}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="260"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="тип трубы" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding pipeType2}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="для способа прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding pipeWay2}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="260"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="тип трубы" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding pipeType3}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="для способа прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding pipeWay3}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="260"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="тип трубы" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding pipeType4}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="для способа прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding pipeWay4}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="260"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="180"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="тип трубы" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center"/>
-                        <TextBox Grid.Column="1" Text="{Binding pipeType5}" Style="{StaticResource DarkCompactTextBoxStyle}" Margin="6,0"/>
-                        <TextBlock Grid.Column="2" Text="для способа прокладки" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" TextWrapping="Wrap" Margin="6,0"/>
-                        <TextBox Grid.Column="3" Text="{Binding pipeWay5}" Style="{StaticResource DarkCompactTextBoxStyle}"/>
-                    </Grid>
+                    <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                        <Button Content="+"
+                                Style="{StaticResource AddStickerButtonStyle}"
+                                ToolTip="Добавить тип трубы"
+                                Click="addPipeTypeButton_Click"/>
+                        <StackPanel Orientation="Horizontal"
+                                    Margin="6,0,0,0"
+                                    Visibility="{Binding isAddingPipeType, Converter={StaticResource BoolToVis}}">
+                            <TextBox x:Name="newPipeTypeBox"
+                                     Width="230"
+                                     Style="{StaticResource DarkCompactTextBoxStyle}"
+                                     Text="{Binding newPipeType, UpdateSourceTrigger=PropertyChanged}"
+                                     KeyDown="newPipeTypeBox_KeyDown"/>
+                            <Button Content="✓"
+                                    Style="{StaticResource AddStickerButtonStyle}"
+                                    Margin="6,0,0,0"
+                                    ToolTip="Добавить"
+                                    Click="acceptPipeTypeButton_Click"/>
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
             </ScrollViewer>
 

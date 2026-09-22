@@ -36,11 +36,7 @@ namespace TNovElectrical
 
         private void HelpButton_Click(object sender, RoutedEventArgs e)
         {
-            string commandText = HelpLinks.GetHelpLink("-");
-            var proc = new System.Diagnostics.Process();
-            proc.StartInfo.FileName = commandText;
-            proc.StartInfo.UseShellExecute = true;
-            proc.Start();
+            HelpLinks.ShowHelp("-");
         }
     }
 }
