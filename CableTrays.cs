@@ -105,7 +105,8 @@ namespace TNovElectrical
             foreach (CableTray ct in CTList)
             {
                 Element elem = doc.GetElement(ct.Id);
-                int parval = elem.LookupParameter("N_ЭЛ.Не специфицировать").AsInteger();
+                Parameter notSpec = elem.LookupParameter("N_ЭЛ.Не специфицировать");
+                int parval = notSpec != null ? notSpec.AsInteger() : 0;
                 if (parval != 1) { CTList1.Add(ct); }
             }
 
@@ -301,6 +302,7 @@ namespace TNovElectrical
             int count1 = 0; int count2 = 0;
 
             bool unhandledError = false;
+            Dictionary<string, List<string>> skippedTrays = new Dictionary<string, List<string>>(); //причина -> Id лотков, для которых не удалось создать крышку/перегородку
             //транзакции
 
             #region Основной код. Крышки
@@ -433,35 +435,64 @@ namespace TNovElectrical
                     {
                         if (captype.Name.Contains(ctType)) { familySymbol = captype; break; }
                     }
+                    if (!run || familySymbol == null)
+                    {
+                        string reason = !run
+                            ? "тип лотка «" + ct.Name + "» не входит в список типов"
+                            : "в проекте нет типа крышки «" + ctType + "»";
+                        Logger.Log("   Лоток " + ct.Id.ToString() + ": крышка не создана, " + reason, 3);
+                        AddSkipped(skippedTrays, "Крышка: " + reason, ct.Id);
+                    }
                     if (run && familySymbol != null)
                     {
                         Logger.Log("   тип крышки: " + familySymbol.Name,2);
-                        //создание крышки
-                        FamilyInstance componentInstance = AdaptiveComponentInstanceUtils.CreateAdaptiveComponentInstance(doc, familySymbol);
-                        IList<ElementId> pointElementRefIds = AdaptiveComponentInstanceUtils.GetInstancePlacementPointElementRefIds(componentInstance);
-                        ReferencePoint element3 = doc.GetElement(pointElementRefIds.First<ElementId>()) as ReferencePoint;
-                        ReferencePoint element4 = doc.GetElement(pointElementRefIds.Last<ElementId>()) as ReferencePoint;
-                        if (Math.Round(endPoint1.X, 3) == Math.Round(endPoint2.X, 3) && Math.Round(endPoint1.Y, 3) == Math.Round(endPoint2.Y, 3))
+                        bool vertical = Math.Round(endPoint1.X, 3) == Math.Round(endPoint2.X, 3) && Math.Round(endPoint1.Y, 3) == Math.Round(endPoint2.Y, 3);
+                        if (vertical && !(element2 is Instance))
                         {
-                            element3.SetCoordinateSystem((element2 as Instance).GetTransform());
-                            element3.SetCoordinateSystem((element2 as Instance).GetTransform());
-                            element3.Position = endPoint1;
-                            element4.Position = endPoint2;
-                            ((Element)componentInstance).LookupParameter("Высота лотка").Set(num2);
-                            ((Element)componentInstance).LookupParameter("Ширина лотка").Set(num3);
-                            ((Location)(((Element)componentInstance).Location as LocationPoint)).Rotate(Line.CreateBound(element3.Position, element4.Position), -1.0 * Math.PI / 2.0);
+                            Logger.Log("   Вертикальный лоток " + ct.Id.ToString() + " не присоединён к соединительной детали. Крышка не создана", 3);
+                            AddSkipped(skippedTrays, "Крышка: вертикальный лоток без соед. детали", ct.Id);
+                            continue;
                         }
-                        else
+                        using (SubTransaction st = new SubTransaction(doc))
                         {
-                            element3.Position = endPoint1;
-                            element4.Position = endPoint2;
-                            ((Element)componentInstance).LookupParameter("Высота лотка").Set(num2);
-                            ((Element)componentInstance).LookupParameter("Ширина лотка").Set(num3);
+                            try
+                            {
+                                st.Start();
+                                //создание крышки
+                                FamilyInstance componentInstance = AdaptiveComponentInstanceUtils.CreateAdaptiveComponentInstance(doc, familySymbol);
+                                IList<ElementId> pointElementRefIds = AdaptiveComponentInstanceUtils.GetInstancePlacementPointElementRefIds(componentInstance);
+                                ReferencePoint element3 = doc.GetElement(pointElementRefIds.First<ElementId>()) as ReferencePoint;
+                                ReferencePoint element4 = doc.GetElement(pointElementRefIds.Last<ElementId>()) as ReferencePoint;
+                                if (vertical)
+                                {
+                                    element3.SetCoordinateSystem((element2 as Instance).GetTransform());
+                                    element3.SetCoordinateSystem((element2 as Instance).GetTransform());
+                                    element3.Position = endPoint1;
+                                    element4.Position = endPoint2;
+                                    SetRequiredParameter(componentInstance, "Высота лотка", num2);
+                                    SetRequiredParameter(componentInstance, "Ширина лотка", num3);
+                                    ((Location)(((Element)componentInstance).Location as LocationPoint)).Rotate(Line.CreateBound(element3.Position, element4.Position), -1.0 * Math.PI / 2.0);
+                                }
+                                else
+                                {
+                                    element3.Position = endPoint1;
+                                    element4.Position = endPoint2;
+                                    SetRequiredParameter(componentInstance, "Высота лотка", num2);
+                                    SetRequiredParameter(componentInstance, "Ширина лотка", num3);
+                                }
+                                Element cap = (Element)componentInstance;
+                                Parameter elmrk = cap.get_Parameter(mark);
+                                elmrk.Set(ct.Id.ToString()); //запись id лотка в параметр Марка у крышки
+                                st.Commit();
+                                count1++;
+                            }
+                            catch (Exception ex)
+                            {
+                                if (st.HasStarted() && !st.HasEnded()) st.RollBack();
+                                Logger.Log("   Лоток " + ct.Id.ToString() + ": крышка не создана. " + ex.ToString(), 4);
+                                AddSkipped(skippedTrays, "Крышка: " + ex.Message, ct.Id);
+                            }
                         }
-                        Element cap = (Element)componentInstance;
-                        Parameter elmrk = cap.get_Parameter(mark);
-                        elmrk.Set(ct.Id.ToString()); //запись id лотка в параметр Марка у крышки
-                        count1++;
                     }
                 }
 
@@ -474,7 +505,7 @@ namespace TNovElectrical
                 }
                 catch (Exception ex)
                 {
-                    Logger.Log("Ошибка: " + ex.Message, 4);
+                    Logger.Log("Ошибка: " + ex.ToString(), 4);
                     new InfoWindow280("Ошибка: " + ex.Message).ShowDialog();
                     unhandledError = true;
                 }
@@ -606,33 +637,62 @@ namespace TNovElectrical
                         {
                             if (partitiontype.Name.Contains(ctType)) { familySymbol = partitiontype; break; }
                         }
+                        if (!run || familySymbol == null)
+                        {
+                            string reason = !run
+                                ? "тип лотка «" + ct.Name + "» не входит в список типов"
+                                : "в проекте нет типа перегородки «" + ctType + "»";
+                            Logger.Log("   Лоток " + ct.Id.ToString() + ": перегородка не создана, " + reason, 3);
+                            AddSkipped(skippedTrays, "Перегородка: " + reason, ct.Id);
+                        }
                         if (run && familySymbol != null)
                         {
                             Logger.Log("   тип перегородки: " + familySymbol.Name, 2);
-                            //создание перегородки
-                            FamilyInstance componentInstance = AdaptiveComponentInstanceUtils.CreateAdaptiveComponentInstance(doc, familySymbol);
-                            IList<ElementId> pointElementRefIds = AdaptiveComponentInstanceUtils.GetInstancePlacementPointElementRefIds(componentInstance);
-                            ReferencePoint element3 = doc.GetElement(pointElementRefIds.First<ElementId>()) as ReferencePoint;
-                            ReferencePoint element4 = doc.GetElement(pointElementRefIds.Last<ElementId>()) as ReferencePoint;
-                            if (Math.Round(endPoint1.X, 3) == Math.Round(endPoint2.X, 3) && Math.Round(endPoint1.Y, 3) == Math.Round(endPoint2.Y, 3))
+                            bool vertical = Math.Round(endPoint1.X, 3) == Math.Round(endPoint2.X, 3) && Math.Round(endPoint1.Y, 3) == Math.Round(endPoint2.Y, 3);
+                            if (vertical && !(element2 is Instance))
                             {
-                                element3.SetCoordinateSystem((element2 as Instance).GetTransform());
-                                element3.SetCoordinateSystem((element2 as Instance).GetTransform());
-                                element3.Position = endPoint1;
-                                element4.Position = endPoint2;
-                                ((Element)componentInstance).LookupParameter("Высота лотка").Set(num);
-                                ((Location)(((Element)componentInstance).Location as LocationPoint)).Rotate(Line.CreateBound(element3.Position, element4.Position), -1.0 * Math.PI / 2.0);
+                                Logger.Log("   Вертикальный лоток " + ct.Id.ToString() + " не присоединён к соединительной детали. Перегородка не создана", 3);
+                                AddSkipped(skippedTrays, "Перегородка: вертикальный лоток без соед. детали", ct.Id);
+                                continue;
                             }
-                            else
+                            using (SubTransaction st = new SubTransaction(doc))
                             {
-                                element3.Position = endPoint1;
-                                element4.Position = endPoint2;
-                                ((Element)componentInstance).LookupParameter("Высота лотка").Set(num);
+                                try
+                                {
+                                    st.Start();
+                                    //создание перегородки
+                                    FamilyInstance componentInstance = AdaptiveComponentInstanceUtils.CreateAdaptiveComponentInstance(doc, familySymbol);
+                                    IList<ElementId> pointElementRefIds = AdaptiveComponentInstanceUtils.GetInstancePlacementPointElementRefIds(componentInstance);
+                                    ReferencePoint element3 = doc.GetElement(pointElementRefIds.First<ElementId>()) as ReferencePoint;
+                                    ReferencePoint element4 = doc.GetElement(pointElementRefIds.Last<ElementId>()) as ReferencePoint;
+                                    if (vertical)
+                                    {
+                                        element3.SetCoordinateSystem((element2 as Instance).GetTransform());
+                                        element3.SetCoordinateSystem((element2 as Instance).GetTransform());
+                                        element3.Position = endPoint1;
+                                        element4.Position = endPoint2;
+                                        SetRequiredParameter(componentInstance, "Высота лотка", num);
+                                        ((Location)(((Element)componentInstance).Location as LocationPoint)).Rotate(Line.CreateBound(element3.Position, element4.Position), -1.0 * Math.PI / 2.0);
+                                    }
+                                    else
+                                    {
+                                        element3.Position = endPoint1;
+                                        element4.Position = endPoint2;
+                                        SetRequiredParameter(componentInstance, "Высота лотка", num);
+                                    }
+                                    Element partition = (Element)componentInstance;
+                                    Parameter elmrk = partition.get_Parameter(mark);
+                                    elmrk.Set(ct.Id.ToString()); //запись id лотка в параметр Марка у перегородки
+                                    st.Commit();
+                                    count2++;
+                                }
+                                catch (Exception ex)
+                                {
+                                    if (st.HasStarted() && !st.HasEnded()) st.RollBack();
+                                    Logger.Log("   Лоток " + ct.Id.ToString() + ": перегородка не создана. " + ex.ToString(), 4);
+                                    AddSkipped(skippedTrays, "Перегородка: " + ex.Message, ct.Id);
+                                }
                             }
-                            Element partition = (Element)componentInstance;
-                            Parameter elmrk = partition.get_Parameter(mark);
-                            elmrk.Set(ct.Id.ToString()); //запись id лотка в параметр Марка у перегородки
-                            count2++;
                         }
                     }
 
@@ -809,6 +869,19 @@ namespace TNovElectrical
                 return Result.Succeeded;
             }
 
+            if (skippedTrays.Count > 0)
+            {
+                List<string> lines = new List<string>();
+                foreach (KeyValuePair<string, List<string>> kv in skippedTrays)
+                {
+                    Logger.Log("Пропущено (" + kv.Key + "): " + string.Join(", ", kv.Value), 3);
+                    string ids = string.Join(", ", kv.Value.Take(5));
+                    if (kv.Value.Count > 5) ids += " и ещё " + (kv.Value.Count - 5).ToString();
+                    lines.Add(kv.Key + " — " + kv.Value.Count.ToString() + " шт.\nId: " + ids);
+                }
+                new InfoWindow280("Не для всех лотков удалось создать элементы:\n\n" + string.Join("\n\n", lines) + "\n\nПолный список Id в логе.").ShowDialog();
+            }
+
             //сообщение об успехе
 
             if (count1 > 0 && count2 > 0)
@@ -831,6 +904,24 @@ namespace TNovElectrical
             }
             Logger.Log("Завершение работы.", 5);
             return Result.Succeeded;
+        }
+
+        private static void AddSkipped(Dictionary<string, List<string>> skipped, string reason, ElementId trayId)
+        {
+            if (!skipped.TryGetValue(reason, out List<string> ids))
+            {
+                ids = new List<string>();
+                skipped[reason] = ids;
+            }
+            ids.Add(trayId.ToString());
+        }
+
+        private static void SetRequiredParameter(Element elem, string paramName, double value)
+        {
+            Parameter p = elem.LookupParameter(paramName);
+            if (p == null)
+                throw new InvalidOperationException("у семейства " + (elem as FamilyInstance)?.Symbol?.FamilyName + " нет параметра «" + paramName + "»");
+            p.Set(value);
         }
 
         private static List<FamilyInstance> CollectGenericModels(Document doc, string familyNamePart)
